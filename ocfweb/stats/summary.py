@@ -1,6 +1,7 @@
 import logging
 from datetime import date
 from datetime import datetime
+from datetime import timedelta
 from operator import attrgetter
 
 from django.shortcuts import render
@@ -19,30 +20,57 @@ from ocflib.lab.stats import UtilizationProfile
 from ocfweb.caching import periodic
 from ocfweb.stats.daily_graph import get_open_close
 
+def datetime_to_js(dt):
+    """Convert a datetime object into a format recognized by
+    JavaScript to display using Highcharts
+    """
+    return "Date.UTC({}, {}, {}, {}, {})".format(dt.year, dt.month, dt.day, dt.hour, dt.minute)
 
 _logger = logging.getLogger(__name__)
 
 
-@periodic(60)
-def desktop_profiles():
-    open_, close = get_open_close(date.today())
+def get_stats_start_end(date_=date.today()):
+    start, end = get_open_close(date_)
     now = datetime.today()
 
     # If the lab has opened, but hasn't closed yet, only count
     # statistics until the current time. If the lab isn't open
     # yet, then don't count anything, and if it is closed, show
     # statistics from when it was open during the day.
-    if now > open_ and now < close:
+    if now > start and now < end:
         end = now
-    elif now <= open_:
-        end = open_
-    else:
-        end = close
+    elif now <= start:
+        end = start
+
+    return (start, end)
+
+
+@periodic(60)
+def desktop_profiles():
+    start, end = get_stats_start_end()
 
     return sorted(
-        UtilizationProfile.from_hostnames(list_desktops(), open_, end).values(),
+        UtilizationProfile.from_hostnames(list_desktops(), start, end).values(),
         key=attrgetter('hostname'),
     )
+
+
+@periodic(60)
+def graph_data():
+    start, end = get_stats_start_end(date.today() + timedelta(days=-5))
+
+    profiles = UtilizationProfile.from_hostnames(list_desktops(public_only=True), start, end).values()
+    minutes = int((end - start).total_seconds() // 60)
+
+    usage = []
+    for minute in range(minutes):
+        instant15 = start + timedelta(minutes=minute, seconds=15)
+        instant45 = start + timedelta(minutes=minute, seconds=45)
+        in_use = sum(1 if profile.in_use(instant15)
+                     or profile.in_use(instant45) else 0 for profile in profiles)
+        usage.append([datetime_to_js(start + timedelta(minutes=minute)), in_use])
+
+    return str(usage).replace('\'', '')
 
 
 @periodic(30)
@@ -83,6 +111,8 @@ def printers():
 
 
 def summary(request):
+    start, end = get_open_close(date.today() + timedelta(days=-5))
+
     return render(
         request,
         'summary.html',
@@ -96,5 +126,9 @@ def summary(request):
             'top_staff_semester': top_staff_semester()[:10],
             'users_in_lab_count': users_in_lab_count(),
             'printers': printers(),
+            'data': graph_data(),
+            'chart_start': datetime_to_js(start),
+            'chart_end': datetime_to_js(end),
         },
     )
+
