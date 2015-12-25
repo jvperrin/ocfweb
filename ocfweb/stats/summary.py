@@ -57,7 +57,7 @@ def desktop_profiles():
 
 @periodic(60)
 def graph_data():
-    start, end = get_stats_start_end(date.today() + timedelta(days=-5))
+    start, end = get_stats_start_end(date.today())
 
     profiles = UtilizationProfile.from_hostnames(list_desktops(public_only=True), start, end).values()
     minutes = int((end - start).total_seconds() // 60)
@@ -111,7 +111,7 @@ def printers():
 
 
 def summary(request):
-    start, end = get_open_close(date.today() + timedelta(days=-5))
+    start, end = get_open_close(date.today())
 
     return render(
         request,
@@ -126,7 +126,8 @@ def summary(request):
             'top_staff_semester': top_staff_semester()[:10],
             'users_in_lab_count': users_in_lab_count(),
             'printers': printers(),
-            'data': graph_data(),
+            'graph_data': graph_data(),
+            'date': date.today().strftime('%a %b %d, %Y'),
             'chart_start': datetime_to_js(start),
             'chart_end': datetime_to_js(end),
         },
