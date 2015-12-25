@@ -15,8 +15,6 @@ def progress_bar(label, value, max):
         {% progress_bar label='Toner: 448 pages remaining' value=448 max=24000 %}
     """
 
-    print(value)
-
     return {
         'label': label,
         'percent': int((value / max) * 100),
