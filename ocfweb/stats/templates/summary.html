@@ -44,6 +44,7 @@
             labels: {
               format: '{value: %l %P}',
             },
+            // Allow a minimum zoom of 10 points shown
             minRange: 600000,
             min: {{ chart_start }},
             max: {{ chart_end }}
@@ -61,6 +62,7 @@
           },
           plotOptions: {
             spline: {
+              color: '#000000',
               showInLegend: false,
               states: {
                 hover: {
@@ -71,6 +73,7 @@
           },
           series: [{
             name: "Users",
+            animation: false,
             data: {{ graph_data }}
           }]
         };
@@ -90,8 +93,9 @@
         {% stats_navbar %}
         <div class="highcharts-wrapper">
             <div id="stats-chart"></div>
-            <img class="img-responsive" src="{% url 'sessions_image' %}" />
         </div>
+
+        <img class="img-responsive" src="{% url 'sessions_image' %}" />
 
         <h3>Currently in Lab</h3>
         <p>
