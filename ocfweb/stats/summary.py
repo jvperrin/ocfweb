@@ -21,15 +21,20 @@ from ocfweb.caching import periodic
 from ocfweb.stats.daily_graph import get_open_close
 
 def datetime_to_js(dt):
-    """Convert a datetime object into a format recognized by
-    JavaScript to display using Highcharts
+    """Convert a Python datetime object into a format recognized
+    by JavaScript to display using Highcharts
+
+    Date.UTC(year, month[, day[, hour[, minute[, second[, millisecond]]]]])
+
+    month: An integer between 0-11 (I have no idea why this is zero indexed, but whatever)
     """
-    return "Date.UTC({}, {}, {}, {}, {})".format(dt.year, dt.month, dt.day, dt.hour, dt.minute)
+    return "Date.UTC({}, {}, {}, {}, {})".format(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute)
 
 _logger = logging.getLogger(__name__)
 
 
-def get_stats_start_end(date_=date.today()):
+def get_stats_start_end(date_):
+    """Get the start and end times for a day on the stats graph"""
     start, end = get_open_close(date_)
     now = datetime.today()
 
@@ -42,12 +47,12 @@ def get_stats_start_end(date_=date.today()):
     elif now <= start:
         end = start
 
-    return (start, end)
+    return start, end
 
 
 @periodic(60)
 def desktop_profiles():
-    start, end = get_stats_start_end()
+    start, end = get_stats_start_end(date.today())
 
     return sorted(
         UtilizationProfile.from_hostnames(list_desktops(), start, end).values(),
@@ -70,6 +75,8 @@ def graph_data():
                      or profile.in_use(instant45) else 0 for profile in profiles)
         usage.append([datetime_to_js(start + timedelta(minutes=minute)), in_use])
 
+    # Remove single quotes, since the array has strings representing
+    # JS Date.UTC objects and we want Date.UTC objects without quotes
     return str(usage).replace('\'', '')
 
 
