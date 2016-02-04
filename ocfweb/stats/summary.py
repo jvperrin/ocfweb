@@ -16,6 +16,8 @@ from ocflib.lab.stats import top_staff_alltime as real_top_staff_alltime
 from ocflib.lab.stats import top_staff_semester as real_top_staff_semester
 from ocflib.lab.stats import users_in_lab_count as real_users_in_lab_count
 from ocflib.lab.stats import UtilizationProfile
+from ocflib.lab.stats import PrinterPages
+from ocflib.lab.stats import PrinterToner
 
 from ocfweb.caching import periodic
 from ocfweb.stats.daily_graph import get_open_close
@@ -80,6 +82,40 @@ def graph_data():
     return str(usage).replace('\'', '')
 
 
+@periodic(5 * 60)
+def toner_data():
+    start = date.today() + timedelta(days=-30)
+    end = date.today()
+
+    data = []
+    for printer in PRINTERS:
+        pt = PrinterToner.from_name(printer, start, end)
+        pt_vals = sorted(list(pt.values))
+        pt_data = []
+        for val in pt_vals:
+            pt_data.append([datetime_to_js(val[0]), val[1]])
+        data.append((pt.name, str(pt_data).replace('\'', '')))
+
+    return data
+
+
+@periodic(5 * 60)
+def page_data():
+    start = date.today() + timedelta(days=-30)
+    end = date.today()
+
+    data = []
+    for printer in PRINTERS:
+        pt = PrinterPages.from_name(printer, start, end)
+        pt_vals = sorted(list(pt.values))
+        pt_data = []
+        for val in pt_vals:
+            pt_data.append([datetime_to_js(val[0]), val[1]])
+        data.append((pt.name, str(pt_data).replace('\'', '')))
+
+    return data
+
+
 @periodic(30)
 def staff_in_lab():
     return real_staff_in_lab()
@@ -138,5 +174,35 @@ def summary(request):
             'chart_start': datetime_to_js(start),
             'chart_end': datetime_to_js(end),
         },
+    )
+
+def toner(request):
+    start = datetime.now() + timedelta(days=-70)
+    end = datetime.now() + timedelta(days=-40)
+
+    return render(
+        request,
+        'toner.html',
+        {
+            'data': toner_data(),
+            'chart_start': datetime_to_js(start),
+            'chart_end': datetime_to_js(end),
+            'printers': PRINTERS,
+        }
+    )
+
+def pages(request):
+    start = datetime.now() + timedelta(days=-70)
+    end = datetime.now() + timedelta(days=-40)
+
+    return render(
+        request,
+        'pages.html',
+        {
+            'data': page_data(),
+            'chart_start': datetime_to_js(start),
+            'chart_end': datetime_to_js(end),
+            'printers': PRINTERS,
+        }
     )
 
