@@ -10,6 +10,8 @@ from ocflib.lab.printing import get_maintkit
 from ocflib.lab.printing import get_toner
 from ocflib.lab.printing import PRINTERS
 from ocflib.lab.stats import list_desktops
+from ocflib.lab.stats import PrinterPages
+from ocflib.lab.stats import PrinterToner
 from ocflib.lab.stats import staff_in_lab as real_staff_in_lab
 from ocflib.lab.stats import STATS_EPOCH
 from ocflib.lab.stats import top_staff_alltime as real_top_staff_alltime
@@ -20,6 +22,7 @@ from ocflib.lab.stats import UtilizationProfile
 from ocfweb.caching import periodic
 from ocfweb.stats.daily_graph import get_open_close
 
+
 def datetime_to_js(dt):
     """Convert a Python datetime object into a format recognized
     by JavaScript to display using Highcharts
@@ -28,7 +31,7 @@ def datetime_to_js(dt):
 
     month: An integer between 0-11 (I have no idea why this is zero indexed, but whatever)
     """
-    return "Date.UTC({}, {}, {}, {}, {})".format(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute)
+    return 'Date.UTC({}, {}, {}, {}, {})'.format(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute)
 
 _logger = logging.getLogger(__name__)
 
@@ -71,13 +74,47 @@ def graph_data():
     for minute in range(minutes):
         instant15 = start + timedelta(minutes=minute, seconds=15)
         instant45 = start + timedelta(minutes=minute, seconds=45)
-        in_use = sum(1 if profile.in_use(instant15)
-                     or profile.in_use(instant45) else 0 for profile in profiles)
+        in_use = sum(1 if profile.in_use(instant15) or
+                     profile.in_use(instant45) else 0 for profile in profiles)
         usage.append([datetime_to_js(start + timedelta(minutes=minute)), in_use])
 
     # Remove single quotes, since the array has strings representing
     # JS Date.UTC objects and we want Date.UTC objects without quotes
     return str(usage).replace('\'', '')
+
+
+@periodic(5 * 60)
+def toner_data():
+    start = date.today() + timedelta(days=-30)
+    end = date.today()
+
+    data = []
+    for printer in PRINTERS:
+        pt = PrinterToner.from_name(printer, start, end)
+        pt_vals = sorted(list(pt.values))
+        pt_data = []
+        for val in pt_vals:
+            pt_data.append([datetime_to_js(val[0]), val[1]])
+        data.append((pt.name, str(pt_data).replace('\'', '')))
+
+    return data
+
+
+@periodic(5 * 60)
+def page_data():
+    start = date.today() + timedelta(days=-30)
+    end = date.today()
+
+    data = []
+    for printer in PRINTERS:
+        pt = PrinterPages.from_name(printer, start, end)
+        pt_vals = sorted(list(pt.values))
+        pt_data = []
+        for val in pt_vals:
+            pt_data.append([datetime_to_js(val[0]), val[1]])
+        data.append((pt.name, str(pt_data).replace('\'', '')))
+
+    return data
 
 
 @periodic(30)
@@ -140,3 +177,34 @@ def summary(request):
         },
     )
 
+
+def toner(request):
+    start = datetime.now() + timedelta(days=-30)
+    end = datetime.now()
+
+    return render(
+        request,
+        'toner.html',
+        {
+            'data': toner_data(),
+            'chart_start': datetime_to_js(start),
+            'chart_end': datetime_to_js(end),
+            'printers': PRINTERS,
+        }
+    )
+
+
+def pages(request):
+    start = datetime.now() + timedelta(days=-30)
+    end = datetime.now()
+
+    return render(
+        request,
+        'pages.html',
+        {
+            'data': page_data(),
+            'chart_start': datetime_to_js(start),
+            'chart_end': datetime_to_js(end),
+            'printers': PRINTERS,
+        }
+    )

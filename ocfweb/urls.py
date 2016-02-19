@@ -18,7 +18,9 @@ from ocfweb.main.staff_hours import staff_hours
 from ocfweb.stats.printing import semester_histogram
 from ocfweb.stats.printing import stats_printing
 from ocfweb.stats.sessions import sessions_image
+from ocfweb.stats.summary import pages
 from ocfweb.stats.summary import summary
+from ocfweb.stats.summary import toner
 from ocfweb.test.periodic import test_list_periodic_functions
 from ocfweb.test.session import test_session
 
@@ -52,6 +54,8 @@ urlpatterns = [
     url(r'^stats/sessions/graph$', sessions_image, name='sessions_image'),
     url(r'^stats/printing/$', stats_printing, name='stats_printing'),
     url(r'^stats/printing/semester-histogram/graph$', semester_histogram, name='semester_histogram'),
+    url(r'^stats/pages/$', pages, name='pages'),
+    url(r'^stats/toner/$', toner, name='toner'),
 
     # legacy redirects
     url(r'^index\.s?html$', lambda _: redirect(reverse('home'), permanent=True)),

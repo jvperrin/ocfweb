@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <script src="https://code.highcharts.com/highcharts.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        Highcharts.setOptions({
+          global: {
+            useUTC: true
+          }
+        });
+
+        options = {
+          chart: {
+            plotBorderWidth: 2,
+            renderTo: 'stats-chart',
+            type: 'line',
+            zoomType: 'x'
+          },
+          credits: {
+            enabled: false
+          },
+          title: {
+            text: "Printer Toner Levels"
+          },
+          xAxis: {
+            gridLineWidth: 1,
+            title: {
+              text: "Time"
+            },
+            type: "datetime",
+            // Allow a minimum zoom of 10 points shown
+            minRange: 3000000,
+            min: {{ chart_start }},
+            max: {{ chart_end }}
+          },
+          yAxis: {
+            max: 24000,
+            title: {
+              text: "Toner Level"
+            }
+          },
+          plotOptions: {
+            spline: {
+              showInLegend: false,
+              states: {
+                hover: {
+                  lineWidthPlus: 0
+                }
+              }
+            }
+          },
+          series: [
+          {% for printer, toner in data %}
+            {
+              name: "{{ printer }}",
+              animation: false,
+              data: {{ toner }}
+            },
+          {% endfor %}
+          ]
+        };
+        chart = new Highcharts.Chart(options);
+      });
+    </script>
+
+
+    <div class="ocf-content-block">
+        <div class="highcharts-wrapper">
+            <div id="stats-chart"></div>
+        </div>
+    </div>
+{% endblock %}

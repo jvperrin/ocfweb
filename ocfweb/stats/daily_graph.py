@@ -1,8 +1,8 @@
 from datetime import datetime
-from datetime import timedelta
 
-from matplotlib.figure import Figure
 from ocflib.lab.hours import Day
+from ocflib.lab.hours import REGULAR_HOURS
+
 
 def get_open_close(day):
     """Return datetime objects representing open and close for a day rounded
@@ -21,4 +21,3 @@ def get_open_close(day):
         end = datetime(day.year, day.month, day.day, max(h.close for h in REGULAR_HOURS[None].hour))
 
     return start, end
-
